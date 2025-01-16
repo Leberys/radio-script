@@ -1,3 +1,6 @@
+Locate:   /home/developer/scripts/script-healthy.py
+
+
 #!/usr/bin/env python3
 import subprocess
 import json
