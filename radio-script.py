@@ -2,7 +2,7 @@
 import subprocess
 import json
 import requests
-import time  # Додано для затримки
+import time
 
 # Список подів, які не можна перезапускати
 EXCLUDE_PODS = ["postgres", "redis", "web", "api"]
@@ -18,7 +18,7 @@ CHECK_BOTH = [
     "https://radio.kyivstar.ua/stream/rap/status/health",
     "https://radio.kyivstar.ua/stream/retromusic/status/health",
     "https://radio.kyivstar.ua/stream/elektro/status/health",
-    "https://radio.kyivstar.ua/stream/sport/status/health",
+    "https://radio.kyivstar.ua/stream/sport/status/health"
 ]
 
 CHECK_TRANSCODING_ONLY = [
@@ -36,7 +36,20 @@ CHECK_TRANSCODING_ONLY = [
     "https://radio.kyivstar.ua/stream/edyninov/status/health",
     "https://radio.kyivstar.ua/stream/hromadske/status/health",
     "https://radio.kyivstar.ua/stream/radionv/status/health",
+    "https://radio.kyivstar.ua/stream/business/status/health",
+    "https://radio.kyivstar.ua/stream/djfm/status/health",
+    "https://radio.kyivstar.ua/stream/kazka/status/health",
+    "https://radio.kyivstar.ua/stream/melodiafm/status/health",
+    "https://radio.kyivstar.ua/stream/powerfm/status/health",
+    "https://radio.kyivstar.ua/stream/shlyager/status/health",
+    "https://radio.kyivstar.ua/stream/tysafm/status/health",
+    "https://radio.kyivstar.ua/stream/ur1/status/health",
+    "https://radio.kyivstar.ua/stream/ur2/status/health",
+    "https://radio.kyivstar.ua/stream/ur3/status/health"
 ]
+
+# Множина для відстеження перевірених URL
+checked_urls = set()
 
 def get_pods():
     try:
@@ -51,7 +64,16 @@ def get_pods():
         print(f"Error running kubectl command: {e.stderr}")
         return None
 
+def log_to_file(filename, message):
+    """Append a message to a specified log file."""
+    with open(filename, "a") as f:
+        f.write(message + "\n")
+
 def check_url(url, check_metadata=True):
+    if url in checked_urls:
+        print(f"URL already checked: {url}")
+        return False
+
     try:
         response = requests.get(url, timeout=5)
         if response.status_code != 200:
@@ -61,17 +83,24 @@ def check_url(url, check_metadata=True):
         # Перевіряємо JSON-відповідь
         data = response.json()
         if data.get("transcoding") != "HEALTHY":
-            print(f"Unhealthy transcoding for {url}: {data.get('transcoding')}")
+            message = f"Unhealthy transcoding for {url}: {data.get('transcoding')}"
+            print(message)
+            log_to_file("Unhealthy-Transcoding.txt", message)
             return True
 
         if check_metadata and data.get("metadata") != "HEALTHY":
-            print(f"Unhealthy metadata for {url}: {data.get('metadata')}")
+            message = f"Unhealthy metadata for {url}: {data.get('metadata')}"
+            print(message)
+            log_to_file("Unhealthy-Metadata.txt", message)
             return True
 
         print(f"Healthy: {url}")
+        checked_urls.add(url)
         return False
     except requests.RequestException as e:
-        print(f"Request failed for {url}: {e}")
+        message = f"Request failed for {url}: {e}"
+        print(message)
+        log_to_file("Unhealthy-Transcoding.txt", message)
         return False
 
 def delete_pod(pod_name):
@@ -97,7 +126,7 @@ def check_and_restart_unhealthy_pods():
 
         # Пропускаємо поди з EXCLUDE_PODS
         if any(exclude in pod_name for exclude in EXCLUDE_PODS):
-            print(f"Skipping excluded pod: {pod_name}")
+            print(f"Skip: {pod_name}")
             continue
 
         # Перевіряємо URL для кожного пода
@@ -114,4 +143,7 @@ def check_and_restart_unhealthy_pods():
             delete_pod(pod_name)
 
 if __name__ == "__main__":
-    check_and_restart_unhealthy_pods()
+    while True:
+        check_and_restart_unhealthy_pods()
+        time.sleep(30)
+
