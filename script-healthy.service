@@ -1,0 +1,10 @@
+Locate /home/developer/.config/systemd/user/script-healthy.service
+
+
+[Service]
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:/home/developer/.local/bin"
+Environment="KUBECONFIG=/home/developer/.kube/config"
+ExecStart=/usr/bin/python3 /home/developer/scripts/script-healthy.py
+WorkingDirectory=/home/developer/scripts/
+Restart=always
+
