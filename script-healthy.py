@@ -1,4 +1,4 @@
-Locate:   /home/developer/scripts/script-healthy.py
+Locate:   /home/developer/scripts/new_script-healthy.py
 
 
 #!/usr/bin/env python3
@@ -133,16 +133,17 @@ def check_and_restart_unhealthy_pods():
             continue
 
         # Перевіряємо URL для кожного пода
+        unhealthy = False
         for url in CHECK_BOTH:
-            if not check_url(url, check_metadata=True):
-                continue
-            print(f"Pod {pod_name} is unhealthy based on {url}. Deleting...")
-            delete_pod(pod_name)
+            if check_url(url, check_metadata=True):
+                unhealthy = True
 
         for url in CHECK_TRANSCODING_ONLY:
-            if not check_url(url, check_metadata=False):
-                continue
-            print(f"Pod {pod_name} is unhealthy based on {url}. Deleting...")
+            if check_url(url, check_metadata=False):
+                unhealthy = True
+
+        if unhealthy:
+            print(f"Pod {pod_name} is unhealthy. Deleting...")
             delete_pod(pod_name)
 
 if __name__ == "__main__":
